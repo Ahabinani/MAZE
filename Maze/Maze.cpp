@@ -12,7 +12,8 @@
 #include <winuser.h>
 #include "Player.h"
 #include "Entity.h"
-#include <cstring> 
+#include <cstring>
+#include <chrono>
 
 //live input
 #include <conio.h>
@@ -69,7 +70,7 @@
 Mazetile aFelder[10000];
 Player Players[5];
 Entity Bot;
-int iMode;
+int iMode;  // 1 = steps, 2 = time
 
 char string[500000];
 
@@ -485,9 +486,11 @@ void EndSequence() {
             }
         }
     }
+
+
     for (int i = 0; i < iNumberPlayers; i++) {
         for (int j = i + 1; j < iNumberPlayers; j++) {
-            if (Players[i].iMoveCount > Players[j].iMoveCount) {
+            if (((Players[i].iMoveCount > Players[j].iMoveCount) && iMode == 1) || ((Players[i].tTime > Players[j].tTime)&&iMode == 2)) {
                 Players[4] = Players[i];
                 Players[i] = Players[j];
                 Players[j] = Players[4];
@@ -501,12 +504,23 @@ void EndSequence() {
             aFelder[GetID(iSize + 23 - iNameLen + j, 5 + i)].iType = currentPlayerName[j];
             aFelder[GetID(iSize + 23 - iNameLen + j, 5 + i)].iColor = Players[i].iDisplayColor + 10;
         }
-        for (int x = iSize + 27; x > iSize + 24; x--) {
-            if (Players[i].iMoveCount >= 1) {
-                aFelder[GetID(x, i + 5)].iType = '0' + (Players[i].iMoveCount % 10);
-                Players[i].iMoveCount /= 10;
-                aFelder[GetID(x, i + 5)].iColor = Players[i].iDisplayColor + 10;
+        if (iMode == 1) {
+            for (int x = iSize + 27; x > iSize + 24; x--) {
+                if (Players[i].iMoveCount >= 1) {
+                    aFelder[GetID(x, i + 5)].iType = '0' + (Players[i].iMoveCount % 10);
+                    Players[i].iMoveCount /= 10;
+                    aFelder[GetID(x, i + 5)].iColor = Players[i].iDisplayColor + 10;
+                }
             }
+        }
+        else if (iMode == 2) {
+            for (int x = iSize + 27; x > iSize + 24; x--) {
+                aFelder[GetID(x, i + 5)].iType = '0' + (Players[i].tTime).count();
+                Players[i].tTime -= (Players[i].tTime);
+                aFelder[GetID(x, i + 5)].iColor = Players[i].iDisplayColor + 10;
+
+            }
+
         }
     }
     UIPrinter(iSize + 21, 6 + iNumberPlayers, "BOT", 6, 0);
@@ -567,6 +581,7 @@ int main()
         _getch();
         //scanf("%[^\n]%*c");
         //start Timer
+        auto startTime = std::chrono::system_clock::now();
 
         while (Players[iPlayerCurrent].iCoordX < iSize) {
             Printscreen(0);
@@ -574,7 +589,10 @@ int main()
             PlayerMove();
 
         }
-        //end Timer
+        std::chrono::duration<double> endTime{std::chrono::system_clock::now() - startTime};
+        Players[iPlayerCurrent].tTime = endTime;
+        printf("%i", endTime);
+        _getch();
         aFelder[GetID(Players[iPlayerCurrent].iCoordX, Players[iPlayerCurrent].iCoordY)].iColor = iColorOld;
 
     }
